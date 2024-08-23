@@ -66,10 +66,10 @@ st.dataframe(st.session_state.df.sort_values(by="GDP Growth", ascending=False), 
 with st.expander("Add a New Head of State", expanded=False):
     with st.form("add_head_of_state_form"):
         name = st.text_input("Name of Head of State")
-        start_date = st.date_input("Start Date")
-        end_date = st.date_input("End Date")
-        gdp_start = st.number_input("GDP at Start (in billions)", min_value=0.0, format="%.2f")
-        gdp_end = st.number_input("GDP at End (in billions)", min_value=0.0, format="%.2f")
+        start_date = st.date_input("Start Date", value=None)
+        end_date = st.date_input("End Date", value=None)
+        gdp_start = st.number_input("GDP at Start (in billions)", min_value=0.0, format="%.2f", value=None)
+        gdp_end = st.number_input("GDP at End (in billions)", min_value=0.0, format="%.2f", value=None)
         submitted = st.form_submit_button("Submit")
 
     if submitted:
@@ -96,4 +96,31 @@ with st.expander("Add a New Head of State", expanded=False):
 
         # Update the session state dataframe and save it to S3.
         st.session_state.df = pd.concat([df_new, st.session_state.df], axis=0)
+        save_data(st.session_state.df)
+
+# Expander to show/hide the form for removing a head of state.
+with st.expander("Remove a Head of State", expanded=False):
+    with st.form("remove_head_of_state_form"):
+        name = st.text_input("Name of Head of State")
+        start_date = st.date_input("Start Date", value = None)
+        removed = st.form_submit_button("Remove")
+
+    if removed:
+        st.write("Searching...")
+
+        # Check if two head of state have the same name
+        if(len(st.session_state.df.loc[st.session_state.df["Name"].str.upper() == name.upper]) > 1):
+            st.error("Multiple Heads of State found")
+            # TO-DO: Case where two Head of State with the same name: Use @start_date
+
+        # Find to-be-removed head of state and their index
+        index = st.session_state.df[st.session_state.df.Name.upper == name.upper].index
+        removedHeadOfState = st.session_state.df.iloc[index]
+
+        # Show a success message.
+        st.write("Head of State removed! Here is the Head of State removed:")
+        st.dataframe(removedHeadOfState, use_container_width=True, hide_index=True)
+
+        # Remove head of state
+        st.session_state.df.drop(index)
         save_data(st.session_state.df)

@@ -1,172 +1,99 @@
 import datetime
-import random
-
-import altair as alt
-import numpy as np
 import pandas as pd
 import streamlit as st
+import boto3
+from io import StringIO
+
+# Define the S3 key (file path in the bucket) for the CSV file.
+S3_FILE_KEY = "head_of_state_data.csv"
+
+# Load AWS credentials from Streamlit secrets
+aws_access_key_id = st.secrets["aws"]["aws_access_key_id"]
+aws_secret_access_key = st.secrets["aws"]["aws_secret_access_key"]
+aws_region = st.secrets["aws"].get("aws_default_region", "us-east-1")
+bucket_name = st.secrets["aws"]["s3_bucket_name"]
+
+# Initialize the S3 client
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=aws_region
+)
+
+# Function to load data from the S3 bucket.
+def load_data():
+    try:
+        # Fetch the file from S3
+        response = s3.get_object(Bucket=bucket_name, Key=S3_FILE_KEY)
+        # Read the CSV content
+        csv_content = response['Body'].read().decode('utf-8')
+        return pd.read_csv(StringIO(csv_content))
+    except s3.exceptions.NoSuchKey:
+        # If the file doesn't exist in S3, return an empty DataFrame with the correct columns.
+        return pd.DataFrame(columns=["Name", "Start Date", "End Date", "GDP Start", "GDP End", "GDP Growth"])
+
+# Function to save data to the S3 bucket.
+def save_data(df):
+    # Convert the DataFrame to CSV format in memory
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    # Save the CSV to S3
+    s3.put_object(Bucket=bucket_name, Key=S3_FILE_KEY, Body=csv_buffer.getvalue())
+
+# Initialize the session state dataframe from the S3 bucket.
+if "df" not in st.session_state:
+    st.session_state.df = load_data()
 
 # Show app title and description.
-st.set_page_config(page_title="Support tickets", page_icon="🎫")
-st.title("🎫 Support tickets")
+st.set_page_config(page_title="Head of State Rankings", page_icon="🏛️")
+st.title("🏛️ Head of State Rankings")
 st.write(
     """
-    This app shows how you can build an internal tool in Streamlit. Here, we are 
-    implementing a support ticket workflow. The user can create a ticket, edit 
-    existing tickets, and view some statistics.
+    This app allows you to rank heads of state based on their tenure and GDP performance.
+    You can view the rankings or add a new head of state.
     """
 )
 
-# Create a random Pandas dataframe with existing tickets.
-if "df" not in st.session_state:
+# Show the main table with the rankings.
+st.header("Head of State Rankings")
+st.write(f"Number of records: `{len(st.session_state.df)}`")
 
-    # Set seed for reproducibility.
-    np.random.seed(42)
+# Display the dataframe as a nice looking table.
+st.dataframe(st.session_state.df.sort_values(by="GDP Growth", ascending=False), use_container_width=True, hide_index=True)
 
-    # Make up some fake issue descriptions.
-    issue_descriptions = [
-        "Network connectivity issues in the office",
-        "Software application crashing on startup",
-        "Printer not responding to print commands",
-        "Email server downtime",
-        "Data backup failure",
-        "Login authentication problems",
-        "Website performance degradation",
-        "Security vulnerability identified",
-        "Hardware malfunction in the server room",
-        "Employee unable to access shared files",
-        "Database connection failure",
-        "Mobile application not syncing data",
-        "VoIP phone system issues",
-        "VPN connection problems for remote employees",
-        "System updates causing compatibility issues",
-        "File server running out of storage space",
-        "Intrusion detection system alerts",
-        "Inventory management system errors",
-        "Customer data not loading in CRM",
-        "Collaboration tool not sending notifications",
-    ]
+# Expander to show/hide the form for adding a new head of state.
+with st.expander("Add a New Head of State", expanded=False):
+    with st.form("add_head_of_state_form"):
+        name = st.text_input("Name of Head of State")
+        start_date = st.date_input("Start Date")
+        end_date = st.date_input("End Date")
+        gdp_start = st.number_input("GDP at Start (in billions)", min_value=0.0, format="%.2f")
+        gdp_end = st.number_input("GDP at End (in billions)", min_value=0.0, format="%.2f")
+        submitted = st.form_submit_button("Submit")
 
-    # Generate the dataframe with 100 rows/tickets.
-    data = {
-        "ID": [f"TICKET-{i}" for i in range(1100, 1000, -1)],
-        "Issue": np.random.choice(issue_descriptions, size=100),
-        "Status": np.random.choice(["Open", "In Progress", "Closed"], size=100),
-        "Priority": np.random.choice(["High", "Medium", "Low"], size=100),
-        "Date Submitted": [
-            datetime.date(2023, 6, 1) + datetime.timedelta(days=random.randint(0, 182))
-            for _ in range(100)
-        ],
-    }
-    df = pd.DataFrame(data)
+    if submitted:
+        # Calculate GDP Growth
+        gdp_growth = gdp_end - gdp_start
 
-    # Save the dataframe in session state (a dictionary-like object that persists across
-    # page runs). This ensures our data is persisted when the app updates.
-    st.session_state.df = df
+        # Create a dataframe for the new head of state and append it to the session state dataframe.
+        df_new = pd.DataFrame(
+            [
+                {
+                    "Name": name,
+                    "Start Date": start_date,
+                    "End Date": end_date,
+                    "GDP Start": gdp_start,
+                    "GDP End": gdp_end,
+                    "GDP Growth": gdp_growth,
+                }
+            ]
+        )
 
+        # Show a success message.
+        st.write("Head of State added! Here are the details:")
+        st.dataframe(df_new, use_container_width=True, hide_index=True)
 
-# Show a section to add a new ticket.
-st.header("Add a ticket")
-
-# We're adding tickets via an `st.form` and some input widgets. If widgets are used
-# in a form, the app will only rerun once the submit button is pressed.
-with st.form("add_ticket_form"):
-    issue = st.text_area("Describe the issue")
-    priority = st.selectbox("Priority", ["High", "Medium", "Low"])
-    submitted = st.form_submit_button("Submit")
-
-if submitted:
-    # Make a dataframe for the new ticket and append it to the dataframe in session
-    # state.
-    recent_ticket_number = int(max(st.session_state.df.ID).split("-")[1])
-    today = datetime.datetime.now().strftime("%m-%d-%Y")
-    df_new = pd.DataFrame(
-        [
-            {
-                "ID": f"TICKET-{recent_ticket_number+1}",
-                "Issue": issue,
-                "Status": "Open",
-                "Priority": priority,
-                "Date Submitted": today,
-            }
-        ]
-    )
-
-    # Show a little success message.
-    st.write("Ticket submitted! Here are the ticket details:")
-    st.dataframe(df_new, use_container_width=True, hide_index=True)
-    st.session_state.df = pd.concat([df_new, st.session_state.df], axis=0)
-
-# Show section to view and edit existing tickets in a table.
-st.header("Existing tickets")
-st.write(f"Number of tickets: `{len(st.session_state.df)}`")
-
-st.info(
-    "You can edit the tickets by double clicking on a cell. Note how the plots below "
-    "update automatically! You can also sort the table by clicking on the column headers.",
-    icon="✍️",
-)
-
-# Show the tickets dataframe with `st.data_editor`. This lets the user edit the table
-# cells. The edited data is returned as a new dataframe.
-edited_df = st.data_editor(
-    st.session_state.df,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Status": st.column_config.SelectboxColumn(
-            "Status",
-            help="Ticket status",
-            options=["Open", "In Progress", "Closed"],
-            required=True,
-        ),
-        "Priority": st.column_config.SelectboxColumn(
-            "Priority",
-            help="Priority",
-            options=["High", "Medium", "Low"],
-            required=True,
-        ),
-    },
-    # Disable editing the ID and Date Submitted columns.
-    disabled=["ID", "Date Submitted"],
-)
-
-# Show some metrics and charts about the ticket.
-st.header("Statistics")
-
-# Show metrics side by side using `st.columns` and `st.metric`.
-col1, col2, col3 = st.columns(3)
-num_open_tickets = len(st.session_state.df[st.session_state.df.Status == "Open"])
-col1.metric(label="Number of open tickets", value=num_open_tickets, delta=10)
-col2.metric(label="First response time (hours)", value=5.2, delta=-1.5)
-col3.metric(label="Average resolution time (hours)", value=16, delta=2)
-
-# Show two Altair charts using `st.altair_chart`.
-st.write("")
-st.write("##### Ticket status per month")
-status_plot = (
-    alt.Chart(edited_df)
-    .mark_bar()
-    .encode(
-        x="month(Date Submitted):O",
-        y="count():Q",
-        xOffset="Status:N",
-        color="Status:N",
-    )
-    .configure_legend(
-        orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    )
-)
-st.altair_chart(status_plot, use_container_width=True, theme="streamlit")
-
-st.write("##### Current ticket priorities")
-priority_plot = (
-    alt.Chart(edited_df)
-    .mark_arc()
-    .encode(theta="count():Q", color="Priority:N")
-    .properties(height=300)
-    .configure_legend(
-        orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    )
-)
-st.altair_chart(priority_plot, use_container_width=True, theme="streamlit")
+        # Update the session state dataframe and save it to S3.
+        st.session_state.df = pd.concat([df_new, st.session_state.df], axis=0)
+        save_data(st.session_state.df)

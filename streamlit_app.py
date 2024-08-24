@@ -122,7 +122,7 @@ with st.expander("Remove a Head of State", expanded=False):
 
     if removed:
         # Guard if head of state is in table
-        if(len(st.session_state.df.loc[st.session_state.df["Name"] == name]) == 0):
+        if(st.session_state.df.loc[st.session_state.df["Name"] == name].empty):
             st.warning("Head of State not found")
             st.stop()
 
@@ -131,6 +131,11 @@ with st.expander("Remove a Head of State", expanded=False):
             # Guard if start date not specified
             if(gdp_growth == None):
                 st.warning("Multiple Heads of State found. Please input the GDP Growth")
+                st.stop()
+            
+            #Guard for invalid GDP growth input
+            if(st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].empty):
+                st.warning("Head of State not found")
                 st.stop()
 
             # Find index with both name and start date

@@ -72,9 +72,24 @@ with st.expander("Add a New Head of State", expanded=False):
         gdp_end = st.number_input("GDP at End (in billions)", min_value=0.0, format="%.2f", value=None)
         submitted = st.form_submit_button("Submit")
 
+        # Guard for illogical date inputs
+        if(start_date != None and end_date != None and end_date < start_date):
+            st.warning("False Input: Start Date is bigger than End Date")
+            st.stop()
+
+        # Guard if form not completely filled out
+        elif(submitted and None in (start_date, end_date, gdp_start, gdp_end)):
+            st.warning("Form not filled out completely")
+            st.stop()
+    
     if submitted:
         # Calculate GDP Growth
         gdp_growth = gdp_end - gdp_start
+
+        # Guard if input already exists in dataframe
+        if(not(st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].empty)):
+            st.warning("Input already in Rankings")
+            st.stop()
 
         # Create a dataframe for the new head of state and append it to the session state dataframe.
         df_new = pd.DataFrame(
@@ -102,25 +117,33 @@ with st.expander("Add a New Head of State", expanded=False):
 with st.expander("Remove a Head of State", expanded=False):
     with st.form("remove_head_of_state_form"):
         name = st.text_input("Name of Head of State")
-        start_date = st.date_input("Start Date", value = None)
+        gdp_growth = st.number_input("GDP Growth", value = None)
         removed = st.form_submit_button("Remove")
 
     if removed:
-        st.write("Searching...")
+        # Guard if head of state is in table
+        if(len(st.session_state.df.loc[st.session_state.df["Name"] == name]) == 0):
+            st.warning("Head of State not found")
+            st.stop()
 
-        # Check if two head of state have the same name
-        if(len(st.session_state.df.loc[st.session_state.df["Name"].str.upper() == name.upper]) > 1):
-            st.error("Multiple Heads of State found")
-            # TO-DO: Case where two Head of State with the same name: Use @start_date
+        # Guard if two head of state have the same name
+        elif(len(st.session_state.df.loc[st.session_state.df["Name"] == name]) > 1):
+            # Guard if start date not specified
+            if(gdp_growth == None):
+                st.warning("Multiple Heads of State found. Please input the GDP Growth")
+                st.stop()
 
-        # Find to-be-removed head of state and their index
-        index = st.session_state.df[st.session_state.df.Name.upper == name.upper].index
-        removedHeadOfState = st.session_state.df.iloc[index]
+            # Find index with both name and start date
+            index = st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].index
+        
+        else:
+            # Find index with only name
+            index = st.session_state.df[st.session_state.df["Name"] == name].index
 
         # Show a success message.
-        st.write("Head of State removed! Here is the Head of State removed:")
-        st.dataframe(removedHeadOfState, use_container_width=True, hide_index=True)
+        st.write("Head of State removed! Here are the details:")
+        st.dataframe(st.session_state.df.iloc[index], use_container_width=True, hide_index=True)
 
         # Remove head of state
-        st.session_state.df.drop(index)
+        st.session_state.df = st.session_state.df.drop(index)
         save_data(st.session_state.df)

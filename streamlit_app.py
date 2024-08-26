@@ -152,3 +152,22 @@ with st.expander("Remove a Head of State", expanded=False):
         # Remove head of state
         st.session_state.df = st.session_state.df.drop(index)
         save_data(st.session_state.df)
+
+# Show a Tag with custom CSS
+st.markdown(
+    """
+        <footer>
+            <p style="color: grey">Inspired by Ousama Ranking</p>
+        </footer>
+
+        <style>
+            footer {
+                position: relative;
+                width: 100%;
+                color: white;
+                text-align: center;
+            }
+        </style>
+
+    """
+    , unsafe_allow_html=True)

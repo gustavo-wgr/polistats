@@ -23,15 +23,11 @@ s3 = boto3.client(
 
 # Function to load data from the S3 bucket.
 def load_data():
-    try:
-        # Fetch the file from S3
-        response = s3.get_object(Bucket=bucket_name, Key=S3_FILE_KEY)
-        # Read the CSV content
-        csv_content = response['Body'].read().decode('utf-8')
-        return pd.read_csv(StringIO(csv_content))
-    except s3.exceptions.NoSuchKey:
-        # If the file doesn't exist in S3, return an empty DataFrame with the correct columns.
-        return pd.DataFrame(columns=["Name", "Start Date", "End Date", "GDP Start", "GDP End", "GDP Growth"])
+    # Fetch the file from S3
+    response = s3.get_object(Bucket=bucket_name, Key=S3_FILE_KEY)
+    # Read the CSV content
+    csv_content = response['Body'].read().decode('utf-8')
+    return pd.read_csv(StringIO(csv_content))
 
 # Function to save data to the S3 bucket.
 def save_data(df):
@@ -50,17 +46,35 @@ st.set_page_config(page_title="Head of State Rankings", page_icon="🏛️")
 st.title("🏛️ Head of State Rankings")
 st.write(
     """
-    This app allows you to rank heads of state based on their tenure and GDP performance.
-    You can view the rankings or add a new head of state.
+    This app allows you to rank heads of state based on economic indicators.
+    
     """
 )
 
-# Show the main table with the rankings.
-st.header("Head of State Rankings")
-st.write(f"Number of records: `{len(st.session_state.df)}`")
 
-# Display the dataframe as a nice looking table.
-st.dataframe(st.session_state.df.sort_values(by="GDP Growth", ascending=False), use_container_width=True, hide_index=True)
+# Function to apply conditional formatting based on the value
+def color_text(val, positive_is_good=True):
+    if positive_is_good:
+        color = '#66CDAA' if val > 0 else '#FF9999'
+    else:
+        color = '#FF9999' if val > 0 else '#66CDAA'
+    return f'color: {color}'
+
+# Drop unnecessary columns before applying styling
+df_display = st.session_state.df.drop(columns=["GDP Start", "GDP End"])
+
+# Format the numerical columns to 2 decimal places
+df_display = df_display.round(2)
+
+# Apply the formatting to the relevant columns
+styled_df = df_display.style.applymap(lambda x: color_text(x, positive_is_good=True), subset=["GDP Growth", "Population"])
+styled_df = styled_df.applymap(lambda x: color_text(x, positive_is_good=False), subset=["Unemployment", "Inequality"])
+
+# Format the numerical columns to show 2 decimal places in the display
+styled_df = styled_df.format({"GDP Growth": "{:.2f}", "Unemployment": "{:.2f}", "Population": "{:.2f}", "Inequality": "{:.2f}"})
+
+# Display the styled dataframe as a table.
+st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 # Expander to show/hide the form for adding a new head of state.
 with st.expander("Add a New Head of State", expanded=False):
@@ -68,26 +82,32 @@ with st.expander("Add a New Head of State", expanded=False):
         name = st.text_input("Name of Head of State")
         start_date = st.date_input("Start Date", value=None)
         end_date = st.date_input("End Date", value=None)
-        gdp_start = st.number_input("GDP at Start (in billions)", min_value=0.0, format="%.2f", value=None)
-        gdp_end = st.number_input("GDP at End (in billions)", min_value=0.0, format="%.2f", value=None)
+        gdp_start = st.number_input("GDP at Start (in millions)", min_value=0.0, format="%.2f", value=None)
+        gdp_end = st.number_input("GDP at End (in millions)", min_value=0.0, format="%.2f", value=None)
+        unemployment = st.number_input("Unemployment Rate Change", min_value=0.0, max_value=100.0, format="%.2f",
+                                       value=None)
+        population = st.number_input("Population Change (in millions)", min_value=0.0, format="%.2f", value=None)
+        inequality = st.number_input("Inequality Change (Share of the top 1%)", min_value=0.0, format="%.2f",
+                                     value=None)
         submitted = st.form_submit_button("Submit")
 
         # Guard for illogical date inputs
-        if(start_date != None and end_date != None and end_date < start_date):
+        if start_date != None and end_date != None and end_date < start_date:
             st.warning("False Input: Start Date is bigger than End Date")
             st.stop()
 
         # Guard if form not completely filled out
-        elif(submitted and None in (start_date, end_date, gdp_start, gdp_end)):
+        elif submitted and None in (start_date, end_date, gdp_start, gdp_end, unemployment, population, inequality):
             st.warning("Form not filled out completely")
             st.stop()
-    
+
     if submitted:
         # Calculate GDP Growth
-        gdp_growth = gdp_end - gdp_start
+        gdp_growth = (gdp_end - gdp_start) / gdp_start
 
         # Guard if input already exists in dataframe
-        if(not(st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].empty)):
+        if not st.session_state.df[
+            (st.session_state.df["Name"] == name) & (st.session_state.df[" GDP Growth"] == gdp_growth)].empty:
             st.warning("Input already in Rankings")
             st.stop()
 
@@ -101,6 +121,10 @@ with st.expander("Add a New Head of State", expanded=False):
                     "GDP Start": gdp_start,
                     "GDP End": gdp_end,
                     "GDP Growth": gdp_growth,
+                    ## HAVE TO SAY UNEMPLOYMENT RATE DECREASE ETC
+                    "Unemployment": unemployment,
+                    "Population": population,
+                    "Inequality": inequality,
                 }
             ]
         )
@@ -117,30 +141,14 @@ with st.expander("Add a New Head of State", expanded=False):
 with st.expander("Remove a Head of State", expanded=False):
     with st.form("remove_head_of_state_form"):
         name = st.text_input("Name of Head of State")
-        gdp_growth = st.number_input("GDP Growth", value = None)
         removed = st.form_submit_button("Remove")
 
     if removed:
         # Guard if head of state is in table
-        if(st.session_state.df.loc[st.session_state.df["Name"] == name].empty):
+        if st.session_state.df.loc[st.session_state.df["Name"] == name].empty:
             st.warning("Head of State not found")
             st.stop()
 
-        # Guard if two head of state have the same name
-        elif(len(st.session_state.df.loc[st.session_state.df["Name"] == name]) > 1):
-            # Guard if start date not specified
-            if(gdp_growth == None):
-                st.warning("Multiple Heads of State found. Please input the GDP Growth")
-                st.stop()
-            
-            #Guard for invalid GDP growth input
-            if(st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].empty):
-                st.warning("Head of State not found")
-                st.stop()
-
-            # Find index with both name and start date
-            index = st.session_state.df[(st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].index
-        
         else:
             # Find index with only name
             index = st.session_state.df[st.session_state.df["Name"] == name].index
@@ -157,9 +165,12 @@ with st.expander("Remove a Head of State", expanded=False):
 st.markdown(
     """
         <footer>
-            <p style="color: grey">Inspired by Ousama Ranking</p>
+            <p style="color: grey; margin: 2px 0;">Inspired by Ousama Ranking</p>
+            <p style="color: grey; font-size: 12px; margin: 2px 0;">Unemployment from multiple sources compiled by World Bank (2024)</p>
+            <p style="color: grey; font-size: 12px; margin: 2px 0;">UN, World Population Prospects (2024)</p>
+            <p style="color: grey; font-size: 12px; margin: 2px 0;">Income share of the richest 1% (before tax) (World Inequality Database)</p>
+            <p style="color: grey; font-size: 12px; margin: 2px 0;">Penn World Table: Output-side real GDP at current PPPs (in mil. 2017US$)</p>
         </footer>
-
         <style>
             footer {
                 position: relative;

@@ -61,7 +61,7 @@ def color_text(val, positive_is_good=True):
     return f'color: {color}'
 
 # Drop unnecessary columns before applying styling
-df_display = st.session_state.df.drop(columns=["GDP Start", "GDP End"])
+df_display = st.session_state.df.drop(columns=["Start Date", "End Date", "GDP Start", "GDP End"])
 
 # Format the numerical columns to 2 decimal places
 df_display = df_display.round(2)
@@ -80,26 +80,14 @@ st.dataframe(styled_df, use_container_width=True, hide_index=True)
 with st.expander("Add a New Head of State", expanded=False):
     with st.form("add_head_of_state_form"):
         name = st.text_input("Name of Head of State")
-        start_date = st.date_input("Start Date", value=None)
-        end_date = st.date_input("End Date", value=None)
         gdp_start = st.number_input("GDP at Start (in millions)", min_value=0.0, format="%.2f", value=None)
         gdp_end = st.number_input("GDP at End (in millions)", min_value=0.0, format="%.2f", value=None)
-        unemployment = st.number_input("Unemployment Rate Change", min_value=0.0, max_value=100.0, format="%.2f",
+        unemployment = st.number_input("Unemployment Rate Change", max_value=100.0, format="%.2f",
                                        value=None)
-        population = st.number_input("Population Change (in millions)", min_value=0.0, format="%.2f", value=None)
-        inequality = st.number_input("Inequality Change (Share of the top 1%)", min_value=0.0, format="%.2f",
+        population = st.number_input("Population Change (in millions)", format="%.2f", value=None)
+        inequality = st.number_input("Inequality Change (Share of the top 1%)", format="%.2f",
                                      value=None)
         submitted = st.form_submit_button("Submit")
-
-        # Guard for illogical date inputs
-        if start_date != None and end_date != None and end_date < start_date:
-            st.warning("False Input: Start Date is bigger than End Date")
-            st.stop()
-
-        # Guard if form not completely filled out
-        elif submitted and None in (start_date, end_date, gdp_start, gdp_end, unemployment, population, inequality):
-            st.warning("Form not filled out completely")
-            st.stop()
 
     if submitted:
         # Calculate GDP Growth
@@ -116,8 +104,6 @@ with st.expander("Add a New Head of State", expanded=False):
             [
                 {
                     "Name": name,
-                    "Start Date": start_date,
-                    "End Date": end_date,
                     "GDP Start": gdp_start,
                     "GDP End": gdp_end,
                     "GDP Growth": gdp_growth,

@@ -107,7 +107,7 @@ with st.expander("Add a New Head of State", expanded=False):
 
         # Guard if input already exists in dataframe
         if not st.session_state.df[
-            (st.session_state.df["Name"] == name) & (st.session_state.df[" GDP Growth"] == gdp_growth)].empty:
+            (st.session_state.df["Name"] == name) & (st.session_state.df["GDP Growth"] == gdp_growth)].empty:
             st.warning("Input already in Rankings")
             st.stop()
 

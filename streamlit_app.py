@@ -66,6 +66,10 @@ df_display = st.session_state.df.drop(columns=["Start Date", "End Date", "GDP St
 # Format the numerical columns to 2 decimal places
 df_display = df_display.round(2)
 
+# To prevent KeyError by .map function
+df_display = df_display.set_index('Name')
+df_display = df_display.reset_index()
+
 # Apply the formatting to the relevant columns
 styled_df = df_display.style.map(lambda x: color_text(x, positive_is_good=True), subset=["GDP Growth", "Population"])
 styled_df = styled_df.map(lambda x: color_text(x, positive_is_good=False), subset=["Unemployment", "Inequality"])

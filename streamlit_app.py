@@ -67,8 +67,8 @@ df_display = st.session_state.df.drop(columns=["Start Date", "End Date", "GDP St
 df_display = df_display.round(2)
 
 # Apply the formatting to the relevant columns
-styled_df = df_display.style.applymap(lambda x: color_text(x, positive_is_good=True), subset=["GDP Growth", "Population"])
-styled_df = styled_df.applymap(lambda x: color_text(x, positive_is_good=False), subset=["Unemployment", "Inequality"])
+styled_df = df_display.style.map(lambda x: color_text(x, positive_is_good=True), subset=["GDP Growth", "Population"])
+styled_df = styled_df.map(lambda x: color_text(x, positive_is_good=False), subset=["Unemployment", "Inequality"])
 
 # Format the numerical columns to show 2 decimal places in the display
 styled_df = styled_df.format({"GDP Growth": "{:.2f}", "Unemployment": "{:.2f}", "Population": "{:.2f}", "Inequality": "{:.2f}"})
@@ -88,6 +88,11 @@ with st.expander("Add a New Head of State", expanded=False):
         inequality = st.number_input("Inequality Change (Share of the top 1%)", format="%.2f",
                                      value=None)
         submitted = st.form_submit_button("Submit")
+    
+    # Guard if at least one input is not filled out
+    if submitted and (None in (gdp_start, gdp_end, unemployment, population, inequality) or not name):
+            st.warning("Form not filled out completely")
+            st.stop()
 
     if submitted:
         # Calculate GDP Growth
@@ -135,11 +140,11 @@ with st.expander("Remove a Head of State", expanded=False):
             st.warning("Head of State not found")
             st.stop()
 
-        else:
-            # Find index with only name
+        elif not name:
+            # Find index
             index = st.session_state.df[st.session_state.df["Name"] == name].index
 
-        # Show a success message.
+        # Show a success message
         st.write("Head of State removed! Here are the details:")
         st.dataframe(st.session_state.df.iloc[index], use_container_width=True, hide_index=True)
 

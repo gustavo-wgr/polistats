@@ -88,14 +88,19 @@ with st.expander("Add a New Head of State", expanded=False):
         inequality = st.number_input("Inequality Change (Share of the top 1%)", format="%.2f",
                                      value=None)
         submitted = st.form_submit_button("Submit")
-    
-    # Guard if at least one input is not filled out
-    if submitted and (None in (gdp_start, gdp_end, unemployment, population, inequality) or not name):
+
+    if submitted:
+        # Guard if at least one input is not filled out
+        if None in (gdp_start, gdp_end, unemployment, population, inequality) or not name:
             st.warning("Form not filled out completely")
             st.stop()
 
-    if submitted:
-        # Calculate GDP Growth
+        # Guard if name is just numbers
+        if name.isdigit():
+            st.warning("Name of Head of State is incorrect")
+            st.stop()
+
+        # Calculate GDP Growth Rate
         gdp_growth = (gdp_end - gdp_start) / gdp_start
 
         # Guard if input already exists in dataframe
@@ -111,6 +116,8 @@ with st.expander("Add a New Head of State", expanded=False):
                     "Name": name,
                     "GDP Start": gdp_start,
                     "GDP End": gdp_end,
+                    ## DIFFERENT NUMBERS MEAN DIFFERENT THINGS ON TABLE -> NEED ELABORATION
+                    ## HAVE TO SAY GDP GROWTH RATE
                     "GDP Growth": gdp_growth,
                     ## HAVE TO SAY UNEMPLOYMENT RATE DECREASE ETC
                     "Unemployment": unemployment,
@@ -122,7 +129,7 @@ with st.expander("Add a New Head of State", expanded=False):
 
         # Show a success message.
         st.write("Head of State added! Here are the details:")
-        st.dataframe(df_new, use_container_width=True, hide_index=True)
+        st.dataframe(df_new.drop(columns=["GDP Start", "GDP End"]), use_container_width=True, hide_index=True)
 
         # Update the session state dataframe and save it to S3.
         st.session_state.df = pd.concat([df_new, st.session_state.df], axis=0)
@@ -140,13 +147,14 @@ with st.expander("Remove a Head of State", expanded=False):
             st.warning("Head of State not found")
             st.stop()
 
-        elif not name:
+        else:
             # Find index
             index = st.session_state.df[st.session_state.df["Name"] == name].index
 
         # Show a success message
         st.write("Head of State removed! Here are the details:")
-        st.dataframe(st.session_state.df.iloc[index], use_container_width=True, hide_index=True)
+        # Show removed head of state without unnecessary columns
+        st.dataframe(st.session_state.df.iloc[index].drop(columns=["Start Date", "End Date", "GDP Start", "GDP End"]), use_container_width=True, hide_index=True)
 
         # Remove head of state
         st.session_state.df = st.session_state.df.drop(index)

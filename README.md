@@ -1,19 +1,3 @@
-# 🎫 Support tickets template
+# Polistats
 
-A simple Streamlit app showing an internal tool that lets you create, manage, and visualize support tickets. 
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://support-tickets-template.streamlit.app/)
-
-### How to run it on your own machine
-
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+A comprehensive data aggregator designed to provide insights into various government administrations, enabling users to compare their performances quantitatively. Our platform offers a user-friendly interface that simplifies the exploration of key statistics across different leaders and their policies.

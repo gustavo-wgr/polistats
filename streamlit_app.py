@@ -1,5 +1,31 @@
 import streamlit as st
 import pandas as pd
+import pandas_datareader as pdr
+
+from pandas_datareader import wb
+
+
+# Data of Head of States in respect to country and date (PLAD Harvard)
+dataHOS = pd.read_csv('PLAD_April_2024.tab', sep='\t')
+
+# Singular tables of data if needed
+
+# Inflation data (World Bank)
+# dataInf = wb.data.DataFrame("NY.GDP.DEFL.KD.ZG")
+
+# Unemployment data (World Bank)
+# dataUnem = wb.data.DataFrame("SL.UEM.TOTL.ZS")
+
+# Annual GDP growth data (World Bank)
+# dataGdpGrowth = wb.data.DataFrame("NY.GDP.MKTP.KD.ZG")
+
+# Annual GDP per capita growth data (World Bank)
+# dataGdpPcGworth = wb.data.DataFrame("NY.GDP.PCAP.KD.ZG")
+
+# Data, starting from 1989, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth
+dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.PCAP.KD.ZG'], start=1989)
+
+
 st.set_page_config(page_title="Polistats", page_icon="🏛️")
 st.title("🏛️ Polistats")
 

@@ -1,6 +1,9 @@
 .streamlit/secrets.toml
 .streamlit
 
+# Harvard PLAD
+PLAD/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

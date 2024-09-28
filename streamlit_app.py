@@ -7,6 +7,8 @@ from pandas_datareader import wb
 
 # Data of Head of States in respect to country and date (PLAD Harvard)
 dataHOS = pd.read_csv('PLAD_April_2024.tab', sep='\t')
+# Take only: country code; HOS; start year of HOS; end year of HOS
+dataHOS = dataHOS[['country', 'leader', 'startdate', 'enddate', 'startyear']] # Use 'startyear' / 'endyear' for just years rather than dates
 
 # Singular tables of data if needed
 
@@ -23,7 +25,9 @@ dataHOS = pd.read_csv('PLAD_April_2024.tab', sep='\t')
 # dataGdpPcGworth = wb.data.DataFrame("NY.GDP.PCAP.KD.ZG")
 
 # Data, starting from 1989, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth
-dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.PCAP.KD.ZG'], start=1989)
+dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1989)
+# Renaming columns of general data
+dataGeneral.rename(columns={'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 'SL.UEM.TOTL.ZS': 'Unemployment Rate', 'NY.GDP.MKTP.KD.ZG': 'GDP Growth','NY.GDP.PCAP.KD.ZG': 'GDP Per Capita'}, inplace=True)
 
 
 st.set_page_config(page_title="Polistats", page_icon="🏛️")

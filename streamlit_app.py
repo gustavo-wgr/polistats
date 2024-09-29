@@ -86,3 +86,22 @@ if len(presidents) == 2:
         st.write(f"No common statistics found between {presidents[0]} and {presidents[1]}")
 else:
     st.write("Please select exactly two presidents to compare.")
+
+st.markdown(
+    """
+        <footer>
+            <p style="color: grey; margin: 2px 0;">Inspired by Ousama Ranking</p>
+            <p style="color: grey; font-size: 10px; margin: 2px 0;">Economic data by The World Bank Group (2024)</p>
+            <p style="color: grey; font-size: 10px; margin: 2px 0;">Head of State data by Harvard PLOD (2024)</p>
+        </footer>
+
+        <style>
+            footer {
+                position: relative;
+                width: 100%;
+                color: white;
+                text-align: center;
+            }
+        </style>
+    """
+, unsafe_allow_html=True)

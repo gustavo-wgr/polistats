@@ -41,6 +41,7 @@ replace_dic = {
     'Turkey': 'Turkiye',
     'Venezuela': 'Venezuela, RB',
     'Vietnam': 'Viet Nam',
+    'West Germany': 'Germany',
     'Yemen': 'Yemen, Rep.',
     'United States of America': 'United States'
     }
@@ -49,23 +50,9 @@ dataTemp.replace(replace_dic, inplace=True)
 # Replacing 'country' in HOS df with normalized names
 dataHOS['country'] = dataTemp
 
-# Singular tables of data if needed
-
-# Inflation data (World Bank)
-# dataInf = wb.data.DataFrame("NY.GDP.DEFL.KD.ZG")
-
-# Unemployment data (World Bank)
-# dataUnem = wb.data.DataFrame("SL.UEM.TOTL.ZS")
-
-# Annual GDP growth data (World Bank)
-# dataGdpGrowth = wb.data.DataFrame("NY.GDP.MKTP.KD.ZG")
-
-# Annual GDP per capita growth data (World Bank)
-# dataGdpPcGworth = wb.data.DataFrame("NY.GDP.PCAP.KD.ZG")
-
 # Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth                             
-dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1948, end=date.today().year, country=["all"]) # 'country=["AFG"]' is here just for testing performance
-# Format it as pandas dataframe                                                                                                                                            # Switch with 'country=['all']' for full data
+dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1948, end=date.today().year, country=["all"])
+# Format it as pandas dataframe
 dataGeneral = pd.DataFrame(dataGeneral)
 # Renaming columns of general data
 dataGeneral.rename(columns={
@@ -129,6 +116,7 @@ if len(presidents) == 2:
 else:
     st.write("Please select exactly two presidents to compare.")
 
+# A lovely tag
 st.markdown(
     """
         <footer>

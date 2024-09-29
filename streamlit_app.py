@@ -8,11 +8,46 @@ from datetime import date
 dataHOS = pd.read_csv('PLAD_April_2024.tab', sep='\t')
 # Take only: country code; HOS; start year of HOS; end year of HOS
 dataHOS = dataHOS[['country', 'leader', 'startdate', 'enddate', 'startyear', 'endyear']]
-# Normalize column type (float -> str)
+# Normalize column 'startyear' and 'endyear' types (float -> str)
 dataHOS = dataHOS.astype({'startyear': int})
 dataHOS = dataHOS.astype({'startyear': str})
 dataHOS = dataHOS.astype({'endyear': int})
 dataHOS = dataHOS.astype({'endyear': str})
+# Taking the 'country' column
+dataTemp = dataHOS['country']
+# Country names to normalize
+replace_dic = {
+    'Bahamas': 'Bahamas, The',
+    'Bosnia': 'Bosnia and Herzegovina',
+    'Brunei': 'Brunei Darussalam',
+    'Cap Verde': 'Cabo Verde',
+    'Congo': 'Congo, Rep.',
+    'Czech Republic': 'Czechia',
+    'Democratic Republic of the Congo': 'Congo, Dem. Rep.',
+    'East Timor': 'Timor-Leste',
+    'Egypt': 'Egypt, Arab Rep.',
+    'Gambia': 'Gambia, The',
+    'Iran': 'Iran, Islamic Rep.',
+    'Kyrgyzstan': 'Kyrgyz Republic',
+    'Laos': 'Lao PDR',
+    'Luxemburg': 'Luxembourg',
+    'Macedonia': 'North Macedonia',
+    'Moldavia': 'Moldova',
+    'North Korea': 'Korea, Dem. People\'s Rep.',
+    'Russia': 'Russian Federation',
+    'Slovakia': 'Slovak Republic',
+    'South Korea': 'Korea, Rep.',
+    'Syria': 'Syrian Arab Republic',
+    'Turkey': 'Turkiye',
+    'Venezuela': 'Venezuela, RB',
+    'Vietnam': 'Viet Nam',
+    'Yemen': 'Yemen, Rep.',
+    'United States of America': 'United States'
+    }
+# Normalizing 'country' names
+dataTemp.replace(replace_dic, inplace=True)
+# Replacing 'country' in HOS df with normalized names
+dataHOS['country'] = dataTemp
 
 # Singular tables of data if needed
 
@@ -28,12 +63,17 @@ dataHOS = dataHOS.astype({'endyear': str})
 # Annual GDP per capita growth data (World Bank)
 # dataGdpPcGworth = wb.data.DataFrame("NY.GDP.PCAP.KD.ZG")
 
-# Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth
-dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1948, end=date.today().year, country=["AFG"]) # 'country=["AFG"]' is here just for testing performance
-# Format it as pandas dataframe
+# Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth                             
+dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1948, end=date.today().year, country=["all"]) # 'country=["AFG"]' is here just for testing performance
+# Format it as pandas dataframe                                                                                                                                            # Switch with 'country=['all']' for full data
 dataGeneral = pd.DataFrame(dataGeneral)
 # Renaming columns of general data
-dataGeneral.rename(columns={'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 'SL.UEM.TOTL.ZS': 'Unemployment Rate', 'NY.GDP.MKTP.KD.ZG': 'GDP Growth','NY.GDP.PCAP.KD.ZG': 'GDP Per Capita'}, inplace=True)
+dataGeneral.rename(columns={
+    'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
+    'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
+    'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
+    'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita'
+    }, inplace=True)
 # To use 'year' as a column for merging
 dataGeneral.reset_index(inplace=True)
 
@@ -43,9 +83,11 @@ dataStart = dataHOS.merge(dataGeneral, left_on=['startyear', 'country'], right_o
 dataEnd = dataHOS.merge(dataGeneral, left_on=['endyear', 'country'], right_on=['year', 'country'])
 
 # Make main dataframe from HOS df and PLAD df
-dataMain = dataStart.merge(dataEnd, how='outer')
+dataMain = pd.concat([dataStart, dataEnd]).drop_duplicates().reset_index(drop=True)
 # Sort first by 'country', then by'startdate', then by 'leader'
-dataMain.sort_values(by=['country', 'startdate', 'leader'], inplace=True) # NEED TO NORMALIZE COUNTRY NAMES: (example) UNITED STATES OF AMERICA -> UNITED STATES
+dataMain.sort_values(by=['country', 'startdate', 'leader'], inplace=True)
+
+st.write(dataMain) # Just for testing
 
 st.set_page_config(page_title="Polistats", page_icon="🏛️")
 st.title("🏛️ Polistats")

@@ -70,51 +70,24 @@ dataStart = dataHOS.merge(dataGeneral, left_on=['startyear', 'country'], right_o
 dataEnd = dataHOS.merge(dataGeneral, left_on=['endyear', 'country'], right_on=['year', 'country'])
 
 # Make main dataframe from HOS df and PLAD df
-dataMain = pd.concat([dataStart, dataEnd]).drop_duplicates().reset_index(drop=True)
+dataMain = pd.concat([dataStart, dataEnd]).drop_duplicates()
+# Removing unnecessary columns: 'startyear'; 'endyear'
+dataMain.drop(columns=['startyear', 'endyear'], inplace=True)
 # Sort first by 'country', then by'startdate', then by 'leader'
 dataMain.sort_values(by=['country', 'startdate', 'leader'], inplace=True)
+# Re-indexing by the above-written sort
+dataMain.reset_index(drop=True, inplace=True)
 
-st.write(dataMain) # Just for testing
+# layout='wide' for more width from parent div of main df
+st.set_page_config(page_title="Polistats", page_icon="🏛️", layout='wide')
+# The title uses markdown for alignment
+st.markdown("<h1 style='text-align: center'>🏛️ Polistats</h1>", unsafe_allow_html=True)
 
-st.set_page_config(page_title="Polistats", page_icon="🏛️")
-st.title("🏛️ Polistats")
-
-# Dictionary holding the statistics for each president
-president_data = {
-    'Obama': pd.DataFrame({
-        'Metric': ['GDP Growth', 'Unemployment Rate', 'Inflation Rate'],
-        'Value': [2.3, 5.0, 1.6]
-    }),
-    'Trump': pd.DataFrame({
-        'Metric': ['GDP Growth', 'Unemployment Rate', 'Inflation Rate', 'Tariff Rates'],
-        'Value': [2.5, 3.9, 1.8, 12.0]
-    }),
-    'Biden': pd.DataFrame({
-        'Metric': ['GDP Growth', 'Unemployment Rate', 'COVID-19 Recovery'],
-        'Value': [3.0, 4.5, 70.0]
-    })
-}
-
-# Let users select two presidents to compare
-presidents = st.multiselect("Select two presidents to compare", list(president_data.keys()), default=["Obama", "Trump"])
-
-# Ensure that exactly two presidents are selected
-if len(presidents) == 2:
-    # Get the two selected DataFrames
-    df1 = president_data[presidents[0]]
-    df2 = president_data[presidents[1]]
-
-    # Merge on 'Metric' to find common statistics
-    df_comparison = pd.merge(df1, df2, on='Metric', suffixes=(f'_{presidents[0]}', f'_{presidents[1]}'))
-
-    if not df_comparison.empty:
-        st.write(f"### Comparison between {presidents[0]} and {presidents[1]}")
-        # Use st.dataframe for an interactive table
-        st.dataframe(df_comparison)
-    else:
-        st.write(f"No common statistics found between {presidents[0]} and {presidents[1]}")
-else:
-    st.write("Please select exactly two presidents to compare.")
+# For custom width of main df
+buffer, col1, buffer2 = st.columns([0.2, 0.6, 0.2])
+with col1:
+    # Centered main table of data without index column
+    st.dataframe(dataMain, use_container_width=True, hide_index=True, height=493)
 
 # A lovely tag
 st.markdown(

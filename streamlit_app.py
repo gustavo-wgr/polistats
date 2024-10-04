@@ -59,7 +59,7 @@ dataGeneral.rename(columns={
     'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
     'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
     'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
-    'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita'
+    'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita' #use this?
     }, inplace=True)
 # To use 'year' as a column for merging
 dataGeneral.reset_index(inplace=True)
@@ -83,11 +83,71 @@ st.set_page_config(page_title="Polistats", page_icon="🏛️", layout='wide')
 # The title uses markdown for alignment
 st.markdown("<h1 style='text-align: center'>🏛️ Polistats</h1>", unsafe_allow_html=True)
 
-# For custom width of main df
+# For custom width
 buffer, col1, buffer2 = st.columns([0.2, 0.6, 0.2])
 with col1:
-    # Centered main table of data without index column
-    st.dataframe(dataMain, use_container_width=True, hide_index=True, height=493)
+    # The tabs
+    default, select, compare = st.tabs(["Default", "Select", "Compare"])
+    # Tab for just showing the data table
+    with default:
+        st.dataframe(dataMain, hide_index=True, use_container_width=True, height=458)
+    
+    # Tab for selection of rows from the table
+    with select:
+        dataSelected = st.dataframe(
+            dataMain,
+            on_select='rerun',
+            selection_mode='multi-row',
+            use_container_width=True,
+            hide_index=True,
+            height=388,
+        )
+
+        st.divider()
+
+        # Displaying selected rows
+        st.header("Selection")
+        selection = dataSelected.selection.rows
+        st.dataframe(
+            dataMain.iloc[dataSelected.selection.rows],
+            use_container_width=True,
+        )
+    
+    # Tab for graphical representation of selected rows
+    with compare:
+        # Df for 'Inflation Rate'
+        dataInf = {}
+        for item in selection:
+            dataInf[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['Inflation Rate']
+        dataInf = pd.DataFrame(dataInf, index=['Inf. Rate'])
+
+        # Df for 'Unemployment Rate'
+        dataUnemp = {}
+        for item in selection:
+            dataUnemp[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['Unemployment Rate']
+        dataUnemp = pd.DataFrame(dataUnemp, index=['Unemp. Rate'])
+
+        # Df for 'GDP Growth'
+        dataGdp = {}
+        for item in selection:
+            dataGdp[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['GDP Growth']
+        dataGdp = pd.DataFrame(dataGdp, index=['GDP Growth Rate'])
+
+        # When selection(s) is made, show the bar graphs
+        if len(selection) > 0:
+            st.header("Inflation data")
+            st.bar_chart(dataInf)
+            st.divider()
+
+            st.header("Unemployment data")
+            st.bar_chart(dataUnemp)
+            st.divider()
+
+            st.header("GDP data")
+            st.bar_chart(dataGdp)
+
+        else:
+            st.markdown("Nothing to see here yet folks!")
 
 # A lovely tag
 st.markdown(

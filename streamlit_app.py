@@ -50,8 +50,13 @@ dataTemp.replace(replace_dic, inplace=True)
 # Replacing 'country' in HOS df with normalized names
 dataHOS['country'] = dataTemp
 
-# Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth data; Annual GDP per capita growth                             
-dataGeneral = wb.download(indicator=['NY.GDP.DEFL.KD.ZG', 'SL.UEM.TOTL.ZS', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG'], start=1948, end=date.today().year, country=["all"])
+# Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth; Annual GDP per capita growth
+dataGeneral = wb.download(indicator=[
+    'NY.GDP.DEFL.KD.ZG', 
+    'SL.UEM.TOTL.ZS', 
+    'NY.GDP.MKTP.KD.ZG', 
+    'NY.GDP.MKTP.KD.ZG'
+    ], start=1948, end=date.today().year, country=["all"])
 # Format it as pandas dataframe
 dataGeneral = pd.DataFrame(dataGeneral)
 # Renaming columns of general data
@@ -65,33 +70,19 @@ dataGeneral.rename(columns={
 dataGeneral.reset_index(inplace=True)
 
 # Prepping a new df for average general data
-dataAvg = dataHOS.merge(dataGeneral, left_on=['startyear', 'country'], right_on=['year', 'country'])
-dataAvg.drop(columns=['year'], inplace=True)
+dataAvg = dataHOS.drop(columns=['endyear']).merge(dataGeneral, left_on=['startyear', 'country'], right_on=['year', 'country'])
+dataAvg.drop(columns=['year', 'startyear'], inplace=True)
 
 # Calculation of average general data
-for leader in dataHOS.iterrows(): #------------------------- needs hella optimization
-    # References the years
-    startTemp = leader[1]['startdate'][:4]
-    endTemp = leader[1]['enddate'][:4]
-    # Selects appropriate country and time range
-    dataTemp = dataGeneral[(dataGeneral['country'] == leader[1]['country']) & (dataGeneral['year'] >= startTemp) & (dataGeneral['year'] <= endTemp)]
+for i in range(len(dataAvg)): #fiddle with bool; some letters in HOS are "?"
+    # Saving specific row
+    leader = dataAvg.iloc[i]
+    # Selects data at appropriate country (@leader.iloc[0]) and time range (@leader.iloc[2][:4] = start year, @leader.iloc[3][:4] = end year)
+    dataTemp = dataGeneral[(dataGeneral['country'] == leader.iloc[0]) & (dataGeneral['year'].between(leader.iloc[2][:4], leader.iloc[3][:4], inclusive='both'))].iloc[:, [2, 3, 4]]
+    # Replaces [Inf; Unemp; GDP] with the means of data
+    dataAvg.iloc[i, [4, 5, 6]] = dataTemp.mean()
 
-    # Calculates average data
-    avgInf = dataTemp['Inflation Rate'].mean()
-    avgUnemp = dataTemp['Unemployment Rate'].mean()
-    avgGdp = dataTemp['GDP Growth'].mean()
-
-    # Finds correct index in @dataAvg
-    index = dataAvg[(dataAvg['country'] == leader[1]['country']) & (dataAvg['startyear'] == leader[1]['startyear']) & (dataAvg['endyear'] == leader[1]['endyear'])].index
-
-    # Replaces with average data
-    dataAvg.loc[index, 'Inflation Rate'] = avgInf
-    dataAvg.loc[index, 'Unemployment Rate'] = avgUnemp
-    dataAvg.loc[index, 'GDP Growth'] = avgGdp
-
-# 'startyear' and 'endyear' not necessary anymore
-dataAvg.drop(columns=['startyear', 'endyear'], inplace=True)
-# Changed to correct names
+# Change to correct names
 dataAvg.rename(columns={
     'Inflation Rate': 'Avg. Inflation Rate', 
     'Unemployment Rate': 'Avg. Unemployment Rate', 
@@ -145,6 +136,7 @@ with col1:
         st.dataframe(
             dataAvg.iloc[dataSelected.selection.rows],
             use_container_width=True,
+            hide_index=True
         )
     
     # Tab for graphical representation of selected rows

@@ -59,10 +59,44 @@ dataGeneral.rename(columns={
     'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
     'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
     'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
-    'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita' #use this?
+    'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita' #-----------------use this? prolly...yeah; at the end tho
     }, inplace=True)
 # To use 'year' as a column for merging
 dataGeneral.reset_index(inplace=True)
+
+# Prepping a new df for average general data
+dataAvg = dataHOS.merge(dataGeneral, left_on=['startyear', 'country'], right_on=['year', 'country'])
+dataAvg.drop(columns=['year'], inplace=True)
+
+# Calculation of average general data
+for leader in dataHOS.iterrows(): #------------------------- needs hella optimization
+    # References the years
+    startTemp = leader[1]['startdate'][:4]
+    endTemp = leader[1]['enddate'][:4]
+    # Selects appropriate country and time range
+    dataTemp = dataGeneral[(dataGeneral['country'] == leader[1]['country']) & (dataGeneral['year'] >= startTemp) & (dataGeneral['year'] <= endTemp)]
+
+    # Calculates average data
+    avgInf = dataTemp['Inflation Rate'].mean()
+    avgUnemp = dataTemp['Unemployment Rate'].mean()
+    avgGdp = dataTemp['GDP Growth'].mean()
+
+    # Finds correct index in @dataAvg
+    index = dataAvg[(dataAvg['country'] == leader[1]['country']) & (dataAvg['startyear'] == leader[1]['startyear']) & (dataAvg['endyear'] == leader[1]['endyear'])].index
+
+    # Replaces with average data
+    dataAvg.loc[index, 'Inflation Rate'] = avgInf
+    dataAvg.loc[index, 'Unemployment Rate'] = avgUnemp
+    dataAvg.loc[index, 'GDP Growth'] = avgGdp
+
+# 'startyear' and 'endyear' not necessary anymore
+dataAvg.drop(columns=['startyear', 'endyear'], inplace=True)
+# Changed to correct names
+dataAvg.rename(columns={
+    'Inflation Rate': 'Avg. Inflation Rate', 
+    'Unemployment Rate': 'Avg. Unemployment Rate', 
+    'GDP Growth': 'Avg. GDP Growth' 
+    }, inplace=True)
 
 # Merge on 'startyear' == 'year'
 dataStart = dataHOS.merge(dataGeneral, left_on=['startyear', 'country'], right_on=['year', 'country'])
@@ -95,7 +129,7 @@ with col1:
     # Tab for selection of rows from the table
     with select:
         dataSelected = st.dataframe(
-            dataMain,
+            dataAvg,
             on_select='rerun',
             selection_mode='multi-row',
             use_container_width=True,
@@ -109,7 +143,7 @@ with col1:
         st.header("Selection")
         selection = dataSelected.selection.rows
         st.dataframe(
-            dataMain.iloc[dataSelected.selection.rows],
+            dataAvg.iloc[dataSelected.selection.rows],
             use_container_width=True,
         )
     
@@ -118,33 +152,33 @@ with col1:
         # Df for 'Inflation Rate'
         dataInf = {}
         for item in selection:
-            dataInf[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['Inflation Rate']
-        dataInf = pd.DataFrame(dataInf, index=['Inf. Rate'])
+            dataInf[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. Inflation Rate']
+        dataInf = pd.DataFrame(dataInf, index=['Avg. Inf. Rate'])
 
         # Df for 'Unemployment Rate'
         dataUnemp = {}
         for item in selection:
-            dataUnemp[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['Unemployment Rate']
-        dataUnemp = pd.DataFrame(dataUnemp, index=['Unemp. Rate'])
+            dataUnemp[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. Unemployment Rate']
+        dataUnemp = pd.DataFrame(dataUnemp, index=['Avg. Unemp. Rate'])
 
         # Df for 'GDP Growth'
         dataGdp = {}
         for item in selection:
-            dataGdp[dataMain.iloc[item]['leader']] = dataMain.iloc[item]['GDP Growth']
-        dataGdp = pd.DataFrame(dataGdp, index=['GDP Growth Rate'])
+            dataGdp[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. GDP Growth']
+        dataGdp = pd.DataFrame(dataGdp, index=['Avg. GDP Growth Rate'])
 
-        # When selection(s) is made, show the bar graphs
-        if len(selection) > 0:
+        # When selections are made, show the scatter graphs
+        if len(selection) > 1:
             st.header("Inflation data")
-            st.bar_chart(dataInf)
+            st.scatter_chart(dataInf)
             st.divider()
 
             st.header("Unemployment data")
-            st.bar_chart(dataUnemp)
+            st.scatter_chart(dataUnemp)
             st.divider()
 
             st.header("GDP data")
-            st.bar_chart(dataGdp)
+            st.scatter_chart(dataGdp)
 
         else:
             st.markdown("Nothing to see here yet folks!")

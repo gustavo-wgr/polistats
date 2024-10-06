@@ -141,36 +141,60 @@ with col1:
     
     # Tab for graphical representation of selected rows
     with compare:
-        # Df for 'Inflation Rate'
-        dataInf = {}
-        for item in selection:
-            dataInf[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. Inflation Rate']
-        dataInf = pd.DataFrame(dataInf, index=['Avg. Inf. Rate'])
-
-        # Df for 'Unemployment Rate'
-        dataUnemp = {}
-        for item in selection:
-            dataUnemp[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. Unemployment Rate']
-        dataUnemp = pd.DataFrame(dataUnemp, index=['Avg. Unemp. Rate'])
-
-        # Df for 'GDP Growth'
-        dataGdp = {}
-        for item in selection:
-            dataGdp[dataAvg.iloc[item]['leader']] = dataAvg.iloc[item]['Avg. GDP Growth']
-        dataGdp = pd.DataFrame(dataGdp, index=['Avg. GDP Growth Rate'])
-
         # When selections are made, show the scatter graphs
-        if len(selection) > 1:
-            st.header("Inflation data")
-            st.scatter_chart(dataInf)
+        if len(selection) > 0:
+            # Skeleton df for all 3 statistics
+            dataTri = {}
+            # Skeleton df for 'Inflation Rate'
+            dataInf = {}
+            # Skeleton df for 'Unemployment Rate'
+            dataUnemp = {}
+            # Skeleton df for 'GDP Growth'
+            dataGdp = {}
+
+            for index in selection:
+                # The selected rows of dataAvg
+                point = dataAvg.iloc[index]
+
+                # Name of datapoint: "leader; start year/end year; country"
+                selectionName = (point['leader'] + "; " 
+                + point['startdate'][:4] + "/" 
+                + point['enddate'][:4] + "; " 
+                + point['country'])
+
+                # Plugging in correct statistical data
+                dataTri[selectionName] = [
+                    point['Avg. Inflation Rate'], 
+                    point['Avg. Unemployment Rate'],
+                    point['Avg. GDP Growth']]
+                dataInf[selectionName] = point['Avg. Inflation Rate']
+                dataUnemp[selectionName] = point['Avg. Unemployment Rate']
+                dataGdp[selectionName] = point['Avg. GDP Growth']
+            
+            # Making dfs with appropriate index names
+            dataTri = pd.DataFrame(dataTri, index=['Avg. Inf. Rate', 'Avg. Unemp. Rate', 'Avg. GDP Growth Rate'])
+            dataInf = pd.DataFrame(dataInf, index=['Avg. Inf. Rate'])
+            dataUnemp = pd.DataFrame(dataUnemp, index=['Avg. Unemp. Rate'])
+            dataGdp = pd.DataFrame(dataGdp, index=['Avg. GDP Growth Rate'])
+
+            # Display main data graph
+            st.header("Scatter")
+            st.scatter_chart(dataTri)
+
             st.divider()
 
-            st.header("Unemployment data")
-            st.scatter_chart(dataUnemp)
-            st.divider()
+            # Expander for singular data graph displays
+            with st.expander("Singular Data Graphs"):
+                st.header("Avg. Inflation Data")
+                st.scatter_chart(dataInf)
+                st.divider()
 
-            st.header("GDP data")
-            st.scatter_chart(dataGdp)
+                st.header("Avg. Unemployment Data")
+                st.scatter_chart(dataUnemp)
+                st.divider()
+
+                st.header("Avg.erage GDP Data")
+                st.scatter_chart(dataGdp)
 
         else:
             st.markdown("Nothing to see here yet folks!")

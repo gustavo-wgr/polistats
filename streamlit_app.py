@@ -76,12 +76,19 @@ def calc_general():
         'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
         'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
         'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
-        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth' #-----------------use this? prolly...yeah; at the end tho; which is now!
+        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth'
         }, inplace=True)
     # To use 'year' as a column for merging
     dataTemp.reset_index(inplace=True)
 
     return dataTemp
+
+# To change col names; needed globally for Stat selecion to work efficiently
+AvgColNames = {
+    'Inflation Rate': 'Avg. Inflation Rate', 
+    'Unemployment Rate': 'Avg. Unemployment Rate', 
+    'GDP Growth': 'Avg. GDP Growth', 
+    'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth'}
 
 @st.cache_data()
 def calc_avg():
@@ -95,14 +102,6 @@ def calc_avg():
         statsTemp = dataGeneral[(dataGeneral['country'] == leader.iloc[0]) & (dataGeneral['year'].between(leader.iloc[2][:4], leader.iloc[3][:4], inclusive='both'))].iloc[:, [2, 3, 4]]
         # Replaces [Inf; Unemp; GDP] with the means of data
         dataTemp.iloc[i, [4, 5, 6]] = statsTemp.mean()
-
-    # Change to correct names
-    dataTemp.rename(columns={
-    'Inflation Rate': 'Avg. Inflation Rate', 
-    'Unemployment Rate': 'Avg. Unemployment Rate', 
-    'GDP Growth': 'Avg. GDP Growth', 
-    'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth'
-    }, inplace=True)
 
     return dataTemp
 
@@ -143,18 +142,30 @@ dataAvg.drop(columns=['year', 'startyear'], inplace=True)
 dataAvg = calc_avg()
 
 # For custom width
-buffer, col1, buffer2 = st.columns([0.2, 0.6, 0.2])
-with col1:
-    # The tabs
+buffer, col, buffer2 = st.columns([0.2, 0.6, 0.2])
+with col: 
+    # The 3 great tabs of Polistats
     default, select, compare = st.tabs(["Default", "Select", "Compare"])
-    # Tab for just showing the data table
+    # Tab for showing the data table and selecting statistics
     with default:
-        st.dataframe(dataMain, hide_index=True, use_container_width=True, height=458)
-    
+        # The dropdown selection
+        StatSelection = st.multiselect("Stats", (
+            'Inflation Rate', 
+            'Unemployment Rate', 
+            'GDP Growth', 
+            'GDP Per Capita Growth'), 
+            placeholder='Select Stats', 
+            label_visibility='collapsed', 
+            default=['Inflation Rate', 'Unemployment Rate', 'GDP Growth', 'GDP Per Capita Growth'])
+
+        # Displaying the data table with selected stats
+        st.dataframe(dataMain[['country', 'leader', 'startdate', 'enddate', 'year'] + StatSelection], hide_index=True, use_container_width=True, height=421)
+
     # Tab for selection of rows from the table
     with select:
         dataSelected = st.dataframe(
-            dataAvg,
+            # Only showing necessary stats with @StatSelection and correcting names
+            dataAvg[['country', 'leader', 'startdate', 'enddate'] + StatSelection].rename(columns=AvgColNames),
             on_select='rerun',
             selection_mode='multi-row',
             use_container_width=True,
@@ -168,7 +179,7 @@ with col1:
         st.header("Selection")
         selection = dataSelected.selection.rows
         st.dataframe(
-            dataAvg.iloc[dataSelected.selection.rows],
+            dataAvg.iloc[dataSelected.selection.rows][['country', 'leader', 'startdate', 'enddate'] + StatSelection].rename(columns=AvgColNames),
             use_container_width=True,
             hide_index=True
         )
@@ -200,14 +211,14 @@ with col1:
 
                 # Plugging in correct statistical data
                 dataQuad[selectionName] = [
-                    point['Avg. Inflation Rate'], 
-                    point['Avg. Unemployment Rate'], 
-                    point['Avg. GDP Growth'], 
-                    point['Avg. GDP Per Capita Growth']]
-                dataInf[selectionName] = point['Avg. Inflation Rate']
-                dataUnemp[selectionName] = point['Avg. Unemployment Rate']
-                dataGdp[selectionName] = point['Avg. GDP Growth']
-                dataGdpPc[selectionName] = point['Avg. GDP Per Capita Growth']
+                    point['Inflation Rate'], 
+                    point['Unemployment Rate'], 
+                    point['GDP Growth'], 
+                    point['GDP Per Capita Growth']]
+                dataInf[selectionName] = point['Inflation Rate']
+                dataUnemp[selectionName] = point['Unemployment Rate']
+                dataGdp[selectionName] = point['GDP Growth']
+                dataGdpPc[selectionName] = point['GDP Per Capita Growth']
             
             # Making dfs with appropriate index names
             dataQuad = pd.DataFrame(dataQuad, index=['Avg. Inf. Rate', 'Avg. Unemp. Rate', 'Avg. GDP Growth Rate', 'Avg. GDP PC. Growth Rate'])
@@ -235,11 +246,11 @@ with col1:
                     st.scatter_chart(dataUnemp)
                     st.divider()
 
-                    st.header("Avg. GDP Data")
+                    st.header("Avg. GDP Growth Data")
                     st.scatter_chart(dataGdp)
                     st.divider()
 
-                    st.header("Avg. GDP PC. Data")
+                    st.header("Avg. GDP PC. Growth Data")
                     st.scatter_chart(dataGdpPc)
 
         else:

@@ -67,7 +67,7 @@ def calc_general():
         'NY.GDP.DEFL.KD.ZG', 
         'SL.UEM.TOTL.ZS', 
         'NY.GDP.MKTP.KD.ZG', 
-        'NY.GDP.MKTP.KD.ZG'
+        'NY.GDP.PCAP.KD.ZG'
         ], start=1948, end=date.today().year, country=["all"])
     # Format it as pandas dataframe
     dataTemp = pd.DataFrame(dataTemp)
@@ -76,7 +76,7 @@ def calc_general():
         'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
         'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
         'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
-        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita' #-----------------use this? prolly...yeah; at the end tho
+        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth' #-----------------use this? prolly...yeah; at the end tho; which is now!
         }, inplace=True)
     # To use 'year' as a column for merging
     dataTemp.reset_index(inplace=True)
@@ -100,7 +100,8 @@ def calc_avg():
     dataTemp.rename(columns={
     'Inflation Rate': 'Avg. Inflation Rate', 
     'Unemployment Rate': 'Avg. Unemployment Rate', 
-    'GDP Growth': 'Avg. GDP Growth' 
+    'GDP Growth': 'Avg. GDP Growth', 
+    'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth'
     }, inplace=True)
 
     return dataTemp
@@ -177,13 +178,15 @@ with col1:
         # When selections are made, show the scatter graphs
         if len(selection) > 0:
             # Skeleton df for all 3 statistics
-            dataTri = {}
+            dataQuad = {}
             # Skeleton df for 'Inflation Rate'
             dataInf = {}
             # Skeleton df for 'Unemployment Rate'
             dataUnemp = {}
             # Skeleton df for 'GDP Growth'
             dataGdp = {}
+            # Skeleton df for 'GDP Per Capita Growth'
+            dataGdpPc = {}
 
             for index in selection:
                 # The selected rows of dataAvg
@@ -196,38 +199,48 @@ with col1:
                 + point['country'])
 
                 # Plugging in correct statistical data
-                dataTri[selectionName] = [
+                dataQuad[selectionName] = [
                     point['Avg. Inflation Rate'], 
-                    point['Avg. Unemployment Rate'],
-                    point['Avg. GDP Growth']]
+                    point['Avg. Unemployment Rate'], 
+                    point['Avg. GDP Growth'], 
+                    point['Avg. GDP Per Capita Growth']]
                 dataInf[selectionName] = point['Avg. Inflation Rate']
                 dataUnemp[selectionName] = point['Avg. Unemployment Rate']
                 dataGdp[selectionName] = point['Avg. GDP Growth']
+                dataGdpPc[selectionName] = point['Avg. GDP Per Capita Growth']
             
             # Making dfs with appropriate index names
-            dataTri = pd.DataFrame(dataTri, index=['Avg. Inf. Rate', 'Avg. Unemp. Rate', 'Avg. GDP Growth Rate'])
+            dataQuad = pd.DataFrame(dataQuad, index=['Avg. Inf. Rate', 'Avg. Unemp. Rate', 'Avg. GDP Growth Rate', 'Avg. GDP PC. Growth Rate'])
             dataInf = pd.DataFrame(dataInf, index=['Avg. Inf. Rate'])
             dataUnemp = pd.DataFrame(dataUnemp, index=['Avg. Unemp. Rate'])
             dataGdp = pd.DataFrame(dataGdp, index=['Avg. GDP Growth Rate'])
+            dataGdpPc = pd.DataFrame(dataGdpPc, index=['Avg. GDP PC. Growth Rate'])
 
             # Display main data graph
             st.header("Scatter")
-            st.scatter_chart(dataTri)
+            st.scatter_chart(dataQuad)
 
             st.divider()
 
             # Expander for singular data graph displays
             with st.expander("Singular Data Graphs"):
-                st.header("Avg. Inflation Data")
-                st.scatter_chart(dataInf)
-                st.divider()
+                # To make graphs smaller
+                buffer, col, buffer2 = st.columns([0.2, 0.6, 0.2])
+                with col:
+                    st.header("Avg. Inflation Data")
+                    st.scatter_chart(dataInf)
+                    st.divider()
 
-                st.header("Avg. Unemployment Data")
-                st.scatter_chart(dataUnemp)
-                st.divider()
+                    st.header("Avg. Unemployment Data")
+                    st.scatter_chart(dataUnemp)
+                    st.divider()
 
-                st.header("Avg.erage GDP Data")
-                st.scatter_chart(dataGdp)
+                    st.header("Avg. GDP Data")
+                    st.scatter_chart(dataGdp)
+                    st.divider()
+
+                    st.header("Avg. GDP PC. Data")
+                    st.scatter_chart(dataGdpPc)
 
         else:
             st.markdown("Nothing to see here yet folks!")

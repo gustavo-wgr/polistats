@@ -62,12 +62,17 @@ def norm_hos():
 dataGeneral = {}
 @st.cache_data()
 def calc_general():
-    # Data (by World Bank Group), starting from 1948, for: Inflation rate; Unemployment rate; Annual GDP growth; Annual GDP per capita growth
+    # Data (by World Bank Group), starting from 1948
     dataTemp = wb.download(indicator=[
-        'NY.GDP.DEFL.KD.ZG', 
-        'SL.UEM.TOTL.ZS', 
-        'NY.GDP.MKTP.KD.ZG', 
-        'NY.GDP.PCAP.KD.ZG'
+        'NY.GDP.DEFL.KD.ZG', # Inflation rate
+        'SL.UEM.TOTL.ZS', # Unemployment rate
+        'NY.GDP.MKTP.KD.ZG', # Annual GDP growth
+        'NY.GDP.PCAP.KD.ZG', # Annual GDP per capita growth
+        'NE.TRD.GNFS.ZS', # Trade (% of GDP)
+        'GC.DOD.TOTL.GD.ZS', # Central government debt (% of GDP)
+        'SI.POV.GINI', # GINI index
+        'SP.POP.TOTL', # Population
+        'SL.TLF.TOTL.IN', # Labor Force
         ], start=1948, end=date.today().year, country=["all"])
     # Format it as pandas dataframe
     dataTemp = pd.DataFrame(dataTemp)
@@ -76,7 +81,12 @@ def calc_general():
         'NY.GDP.DEFL.KD.ZG': 'Inflation Rate', 
         'SL.UEM.TOTL.ZS': 'Unemployment Rate', 
         'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
-        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth'
+        'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth', 
+        'NE.TRD.GNFS.ZS': 'Trade (% of GDP)', 
+        'GC.DOD.TOTL.GD.ZS': 'Central government debt (% of GDP)', 
+        'SI.POV.GINI': 'GINI index', 
+        'SP.POP.TOTL': 'Population', 
+        'SL.TLF.TOTL.IN': 'Labor Force', 
         }, inplace=True)
     # To use 'year' as a column for merging
     dataTemp.reset_index(inplace=True)
@@ -88,7 +98,12 @@ AvgColNames = {
     'Inflation Rate': 'Avg. Inflation Rate', 
     'Unemployment Rate': 'Avg. Unemployment Rate', 
     'GDP Growth': 'Avg. GDP Growth', 
-    'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth'}
+    'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth', 
+    'Trade (% of GDP)': 'Avg. Trade', 
+    'Central government debt (% of GDP)': 'Avg. Gov. Debt', 
+    'GINI index': 'Avg. GINI index', 
+    'Population': 'Avg. Population', 
+    'Labor Force': 'Avg. Labor Force'}
 
 @st.cache_data()
 def calc_avg():
@@ -99,9 +114,9 @@ def calc_avg():
         # Saving specific row
         leader = dataAvg.iloc[i]
         # Selects data at appropriate country (@leader.iloc[0]) and time range (@leader.iloc[2][:4] = start year, @leader.iloc[3][:4] = end year)
-        statsTemp = dataGeneral[(dataGeneral['country'] == leader.iloc[0]) & (dataGeneral['year'].between(leader.iloc[2][:4], leader.iloc[3][:4], inclusive='both'))].iloc[:, [2, 3, 4]]
+        statsTemp = dataGeneral[(dataGeneral['country'] == leader.iloc[0]) & (dataGeneral['year'].between(leader.iloc[2][:4], leader.iloc[3][:4], inclusive='both'))].iloc[:, 2:]
         # Replaces [Inf; Unemp; GDP] with the means of data
-        dataTemp.iloc[i, [4, 5, 6]] = statsTemp.mean()
+        dataTemp.iloc[i, 4:] = statsTemp.mean()
 
     return dataTemp
 
@@ -153,7 +168,12 @@ with col:
             'Inflation Rate', 
             'Unemployment Rate', 
             'GDP Growth', 
-            'GDP Per Capita Growth'), 
+            'GDP Per Capita Growth', 
+            'Trade (% of GDP)', 
+            'Central government debt (% of GDP)', 
+            'GINI index', 
+            'Population', 
+            'Labor Force'), 
             placeholder='Select Stats', 
             label_visibility='collapsed', 
             default=['Inflation Rate', 'Unemployment Rate', 'GDP Growth', 'GDP Per Capita Growth'])

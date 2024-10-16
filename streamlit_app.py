@@ -71,8 +71,8 @@ def calc_general():
         'NE.TRD.GNFS.ZS', # Trade (% of GDP)
         'GC.DOD.TOTL.GD.ZS', # Central government debt (% of GDP)
         'SI.POV.GINI', # GINI index
-        'SP.POP.TOTL', # Population
-        'SL.TLF.TOTL.IN', # Labor Force
+        'SP.POP.GROW', # Population growth
+        'SL.TLF.CACT.ZS', # Labor force participation rate
         ], start=1948, end=date.today().year, country=["all"])
     # Format it as pandas dataframe
     dataTemp = pd.DataFrame(dataTemp)
@@ -83,10 +83,10 @@ def calc_general():
         'NY.GDP.MKTP.KD.ZG': 'GDP Growth', 
         'NY.GDP.PCAP.KD.ZG': 'GDP Per Capita Growth', 
         'NE.TRD.GNFS.ZS': 'Trade (% of GDP)', 
-        'GC.DOD.TOTL.GD.ZS': 'Central government debt (% of GDP)', 
+        'GC.DOD.TOTL.GD.ZS': 'Central Government Debt (% of GDP)', 
         'SI.POV.GINI': 'GINI index', 
-        'SP.POP.TOTL': 'Population', 
-        'SL.TLF.TOTL.IN': 'Labor Force', 
+        'SP.POP.GROW': 'Population Growth', 
+        'SL.TLF.CACT.ZS': 'Labor Force Participation Rate', 
         }, inplace=True)
     # To use 'year' as a column for merging
     dataTemp.reset_index(inplace=True)
@@ -100,10 +100,10 @@ AvgColNames = {
     'GDP Growth': 'Avg. GDP Growth', 
     'GDP Per Capita Growth': 'Avg. GDP Per Capita Growth', 
     'Trade (% of GDP)': 'Avg. Trade', 
-    'Central government debt (% of GDP)': 'Avg. Gov. Debt', 
+    'Central Government Debt (% of GDP)': 'Avg. Gov. Debt', 
     'GINI index': 'Avg. GINI index', 
-    'Population': 'Avg. Population', 
-    'Labor Force': 'Avg. Labor Force'}
+    'Population Growth': 'Avg. Population Growth', 
+    'Labor Force Participation Rate': 'Avg. LF. Part.'}
 
 @st.cache_data()
 def calc_avg():
@@ -170,10 +170,10 @@ with col:
             'GDP Growth', 
             'GDP Per Capita Growth', 
             'Trade (% of GDP)', 
-            'Central government debt (% of GDP)', 
+            'Central Government Debt (% of GDP)', 
             'GINI index', 
-            'Population', 
-            'Labor Force'), 
+            'Population Growth', 
+            'Labor Force Participation Rate'), 
             placeholder='Select Stats', 
             label_visibility='collapsed', 
             default=['Inflation Rate', 'Unemployment Rate', 'GDP Growth', 'GDP Per Capita Growth'])
@@ -209,7 +209,7 @@ with col:
         # When selections are made, show the scatter graphs
         if len(selection) > 0:
             # Skeleton df for all 3 statistics
-            dataQuad = {}
+            dataVar = {}
             # Skeleton df for 'Inflation Rate'
             dataInf = {}
             # Skeleton df for 'Unemployment Rate'
@@ -218,8 +218,21 @@ with col:
             dataGdp = {}
             # Skeleton df for 'GDP Per Capita Growth'
             dataGdpPc = {}
+            # Skeleton df for 'Trade (% of GDP)'
+            dataTr = {}
+            # Skeleton df for 'Central Government Debt (% of GDP)'
+            dataCGD = {}
+            # Skeleton df for 'GINI index'
+            dataGINI = {}
+            # Skeleton df for 'Population Growth'
+            dataPg = {}
+            # Skeleton df for 'Labor Force Participation Rate'
+            dataLFPR = {}
 
-            for index in selection:
+            # Selection of only stats; for optimization
+            dataAvgTemp = dataAvg[StatSelection]
+
+            for index in selection: # 
                 # The selected rows of dataAvg
                 point = dataAvg.iloc[index]
 
@@ -229,27 +242,50 @@ with col:
                 + point['enddate'][:4] + "; " 
                 + point['country'])
 
+                # For while loop optimization
+                point = dataAvgTemp.iloc[index]
+
+                # Loop counter
+                i = 0
+                # Dictionary for specific stat values
+                pointTemp = []
+                # Temporary holder for Singular Graphs
+                dataTemp = {}
+                while(i < len(StatSelection)): 
+                    pointTemp.append(point[i])
+
+                    i += 1
+                
+                # For singular graphs
+                point = dataAvg.iloc[index][4:]
+
                 # Plugging in correct statistical data
-                dataQuad[selectionName] = [
-                    point['Inflation Rate'], 
-                    point['Unemployment Rate'], 
-                    point['GDP Growth'], 
-                    point['GDP Per Capita Growth']]
+                dataVar[selectionName] = pointTemp
                 dataInf[selectionName] = point['Inflation Rate']
                 dataUnemp[selectionName] = point['Unemployment Rate']
                 dataGdp[selectionName] = point['GDP Growth']
                 dataGdpPc[selectionName] = point['GDP Per Capita Growth']
-            
+                dataTr[selectionName] = point['Trade (% of GDP)']
+                dataCGD[selectionName] = point['Central Government Debt (% of GDP)']
+                dataGINI[selectionName] = point['GINI index']
+                dataPg[selectionName] = point['Population Growth']
+                dataLFPR[selectionName] = point['Labor Force Participation Rate']
+
             # Making dfs with appropriate index names
-            dataQuad = pd.DataFrame(dataQuad, index=['Avg. Inf. Rate', 'Avg. Unemp. Rate', 'Avg. GDP Growth Rate', 'Avg. GDP PC. Growth Rate'])
+            dataVar = pd.DataFrame(dataVar, index=StatSelection)
             dataInf = pd.DataFrame(dataInf, index=['Avg. Inf. Rate'])
             dataUnemp = pd.DataFrame(dataUnemp, index=['Avg. Unemp. Rate'])
             dataGdp = pd.DataFrame(dataGdp, index=['Avg. GDP Growth Rate'])
             dataGdpPc = pd.DataFrame(dataGdpPc, index=['Avg. GDP PC. Growth Rate'])
+            dataTr = pd.DataFrame(dataTr, index=['Avg. Trade'])
+            dataCGD = pd.DataFrame(dataCGD, index=['Avg. Gov. Debt'])
+            dataGINI = pd.DataFrame(dataGINI, index=['Avg. GINI index'])
+            dataPg = pd.DataFrame(dataPg, index=['Avg. Population Growth'])
+            dataLFPR = pd.DataFrame(dataLFPR, index=['Avg. LF. Part.'])
 
             # Display main data graph
             st.header("Scatter")
-            st.scatter_chart(dataQuad)
+            st.scatter_chart(dataVar)
 
             st.divider()
 
@@ -272,6 +308,26 @@ with col:
 
                     st.header("Avg. GDP PC. Growth Data")
                     st.scatter_chart(dataGdpPc)
+                    st.divider()
+
+                    st.header("Avg. Trade")
+                    st.scatter_chart(dataTr)
+                    st.divider()
+
+                    st.header("Avg. Gov. Debt")
+                    st.scatter_chart(dataCGD)
+                    st.divider()
+
+                    st.header("Avg. GINI index")
+                    st.scatter_chart(dataGINI)
+                    st.divider()
+
+                    st.header("Avg. Population Growth")
+                    st.scatter_chart(dataPg)
+                    st.divider()
+
+                    st.header("Avg. LF. Part.")
+                    st.scatter_chart(dataLFPR)
 
         else:
             st.markdown("Nothing to see here yet folks!")

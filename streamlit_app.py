@@ -337,8 +337,8 @@ st.markdown(
     """
         <footer>
             <p style="color: grey; margin: 2px 0;">Inspired by Ousama Ranking</p>
-            <p style="color: grey; font-size: 10px; margin: 2px 0;">Economic data by The World Bank Group (2024)</p>
-            <p style="color: grey; font-size: 10px; margin: 2px 0;">Head of State data by Harvard PLOD (2024)</p>
+            <p style="color: grey; font-size: 10px; margin: 2px 0;">Economic data from The World Bank Group (2024)</p>
+            <p style="color: grey; font-size: 10px; margin: 2px 0;">Head of State data from Harvard PLAD (2024)</p>
         </footer>
 
         <style>

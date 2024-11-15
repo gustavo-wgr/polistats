@@ -332,7 +332,7 @@ with col:
         else:
             st.markdown("Nothing to see here yet folks!")
 
-# A lovely tag
+# A lovely tag <3 skypacca
 st.markdown(
     """
         <footer>

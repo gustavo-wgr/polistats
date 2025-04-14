@@ -43,3 +43,13 @@ Heads of state data from Harvard [Political Leaders' Affiliation Database](https
 > - Replace the file "PLAD_April_2024.tab" in your local repository
 > 
 > Or just contact me and I will change  the file in the repository :D.
+
+## How to run
+Install the packages with requirements.txt
+```
+pip install -r requirements.txt
+```
+Use streamlit to run the app
+```
+streamlit run streamlit_app.py
+```

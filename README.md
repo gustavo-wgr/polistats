@@ -41,6 +41,7 @@ Heads of state data from Harvard [Political Leaders' Affiliation Database](https
 > - Visit their official website:  https://plad.me/
 > - Download the newest version
 > - Replace the file "PLAD_April_2024.tab" in your local repository
+> - Change the name in line 8 of streamlit_app.py: dataHOS = pd.read_csv('***PLAD_April_2024.tab***', sep='\t')
 > 
 > Or just contact me and I will change  the file in the repository :D.
 
